@@ -1,0 +1,59 @@
+service: nn-technical-assignment
+frameworkVersion: '3'
+
+custom:
+  advisorTableName: 'advisor-${sls:stage}'
+  productTableName: 'product-${sls:stage}'
+
+provider:
+  name: aws
+  runtime: nodejs14.x
+  iam:
+    role:
+      statements:
+        - Effect: Allow
+          Action:
+            - dynamodb:Scan
+            - dynamodb:PutItem
+          Resource:
+            - Fn::GetAtt: [ AdvisorTable, Arn ]
+            - Fn::GetAtt: [ ProductTable, Arn ]
+  environment:
+    ADVISOR_TABLE: ${self:custom.advisorTableName}
+    PRODUCT_TABLE: ${self:custom.productTableName}
+    JWT_SECRET: A^nnROCKS!$6EJRWRlWd85
+
+functions:
+  api:
+    handler: handler.handler
+    events:
+      - httpApi: '*'
+
+resources:
+  Resources:
+    AdvisorTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        AttributeDefinitions:
+          - AttributeName: id
+            AttributeType: S
+        KeySchema:
+          - AttributeName: id
+            KeyType: HASH
+        BillingMode: PAY_PER_REQUEST
+        TableName: ${self:custom.advisorTableName}
+    ProductTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        AttributeDefinitions:
+          - AttributeName: id
+            AttributeType: S
+          - AttributeName: advisorId
+            AttributeType: S
+        KeySchema:
+          - AttributeName: id
+            KeyType: HASH
+          - AttributeName: advisorId
+            KeyType: RANGE
+        BillingMode: PAY_PER_REQUEST
+        TableName: ${self:custom.productTableName}
